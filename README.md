@@ -1,5 +1,6 @@
 Example:
 
+```lua
 local myDialogue = {
   dialogue  = "Testing dialogue, testing testing one two three four. Should probably actually test what happens when this text becomes too long.",
   targetEnt = PlayerPedId(),
@@ -32,4 +33,4 @@ local function onInteract(data)
   print(data.option.name)
 end
 
-exports['fivem-dialogue']:Open(myDialogue)
+exports['fivem-dialogue']:Open(myDialogue)```
