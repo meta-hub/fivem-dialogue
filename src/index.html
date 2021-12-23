@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+  <style type="text/css">
+    body {
+      overflow: hidden;
+      font-family: Arial;
+      opacity: 0;
+      user-select: none;
+    }
+
+    .dialogue {
+      display: flex;
+      gap: 10px;
+      position: absolute;
+
+      top: 0px;
+      left: 0px;
+      width: auto;
+      height: auto;
+      margin: 30px 60px;
+      padding: 10px;
+      background-color: rgb(30,30,45);
+      color: white;
+      border-radius: 20px;
+    }
+
+    .dialogue > span {
+      padding-right: 60px;
+    }
+
+    .options {
+      position: absolute;
+      left: 50%;
+      bottom: 50px;
+      width: 200px;
+      height: 200px;
+      display: grid;
+      grid-template-columns: 50% 50%;
+      grid-template-rows: 50% 50%;
+      grid-gap: 10px;
+
+      transform: rotate(45deg) translateX(-50%);
+    }
+
+    .options > div {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      transform: rotate(-45deg);
+    }
+
+    .options > div:nth-child(1) {
+      flex-direction: column-reverse;
+      text-align: center;
+    }
+
+    .options > div:nth-child(2) {
+      text-align: left;
+      flex-direction: row;   
+    }
+
+    .options > div:nth-child(3) {
+      text-align: right;
+      flex-direction: row-reverse;    
+    }
+
+    .options > div:nth-child(4) {
+      text-align: center;
+      flex-direction: column;    
+    }
+
+    .options > div > .text {
+      white-space: nowrap; 
+      overflow: visible;
+      background-color: rgb(30,30,45);
+      color: white;
+      border-radius: 10px;
+      padding: 10px 20px;
+    }
+
+    .options > div > .control {
+      color: rgb(30,30,30);
+      border: 1px solid #47476b;
+      border-radius: 7px;
+      min-width: 30px;
+      max-width: 30px;
+      min-height: 30px;
+      max-height: 30px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      color: white;
+      background-color: #3d3d5c;
+      box-shadow: 0 6px 0px 4px #14141f;
+      transform: translateY(-3px);
+    }
+
+    .options > div > .selected {
+      background-color: #47476b;
+      transform: translateY(0px);
+      box-shadow: 0 5px 0px 3px #14141f;
+    }
+  </style>
+</head>
+<body>
+  <div class="dialogue"><i class="fas fa-info-circle"></i> <span id="dialogue-text">Testing testing 1234</span></div>
+  <div class="options">
+    <div>
+      <div id="control w" class="control">W</div> <div class="text">Testing testing 1234</div>
+    </div>
+    <div>
+      <div id="control d" class="control">D</div> <div class="text">Testing testing 1234</div>
+    </div>
+    <div>
+      <div id="control a" class="control">A</div> <div class="text">Testing testing 1234</div>
+    </div>
+    <div>
+      <div id="control s" class="control">S</div> <div class="text">Testing testing 1234</div>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+    var resourceName
+    var options = {}
+    var dialogueText = document.getElementById('dialogue-text')
+
+    var controls = [
+      document.getElementById("control a"),
+      document.getElementById("control d"),
+      document.getElementById("control w"),
+      document.getElementById("control s")
+    ]
+
+    var controlsLookup = {
+      a:0,
+      d:1,
+      w:2,
+      s:3
+    }
+
+    function closeUi(data) {      
+      if (data) {
+        $.post(`https://${resourceName}/close`,JSON.stringify(data))
+      } else {
+        $.post(`https://${resourceName}/close`)
+      }
+
+      document.body.style.opacity = 0  
+      options = {}
+    }
+
+    function handleMessage(d) {
+      if (d.type == "open") {
+        document.body.style.opacity = 1
+
+        for (var i=0;i<4;i++) {
+          var control = controls[i].parentNode
+          var option = d.options[i]
+          var text = control.querySelector(".text")
+
+          if (option) {
+            control.style.opacity = 1
+            text.innerHTML = option.label
+          } else {
+            control.style.opacity = 0
+          }
+        }
+
+        dialogueText.innerHTML = d.dialogue
+        options = d.options
+      } else if (d.type == "config") {
+        resourceName = d.resourceName
+        $.post(`https://${resourceName}/ready`)
+      }
+    }
+
+    window.addEventListener('keydown',function(e) {
+      var key = e.key.toLowerCase()
+      var controlLookup = controlsLookup[key]
+
+      if (controlLookup == undefined) {
+        return
+      }
+
+      var opt = options[controlLookup]
+
+      if (!opt) {
+        return
+      }
+
+      var div = controls[controlLookup]
+
+      if (!div) {
+        return
+      }
+
+      div.classList.toggle("selected",true)
+    })
+
+    window.addEventListener('keyup',function(e) {
+      var key = e.key.toLowerCase()
+
+      if (key == "escape" || key == "esc") {
+        closeUi()
+        return
+      }
+
+      var controlLookup = controlsLookup[key]
+
+      if (controlLookup == undefined) {
+        return
+      }
+
+      var opt = options[controlLookup]
+
+      if (!opt) {
+        return
+      }
+
+      var div = controls[controlLookup]
+
+      if (!div) {
+        return
+      }
+
+      closeUi({
+        option:opt,
+        index:controlLookup+1
+      })
+    })
+
+    window.addEventListener('message',function(e) {
+      handleMessage(e.data)
+    })
+
+/*    handleMessage({
+      type:"open",
+      dialogue:"Testing a long dialogue here. Lorem ipsowhateverthefuck I hate that sentence and never even really knew it to begin with.",
+      options:[
+        {
+          label:"Testing, testing, testing one two three four.",
+        },
+        {
+          label:"Testing, testing, testing one two three.",
+        },
+        {
+          label:"Testing, testing, testing one two.",
+        },
+        {
+          label:"Testing, testing, testing one.",
+        }
+      ]
+    })*/
+  </script>
+</body>
+</html>
